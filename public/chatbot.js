@@ -11,6 +11,7 @@ const {
   HarmCategory,
   HarmBlockThreshold,
 } = require("@google/generative-ai");
+const Bottleneck = require("bottleneck");
 
 const url = 'https://generativelanguage.googleapis.com/v1beta2/text:generate';
 
@@ -29,12 +30,18 @@ const generationConfig = {
   responseMimeType: "text/plain",
 };
 
+const limiter = new Bottleneck({
+  minTime: 200 // Adjust the rate limit as needed
+});
+
+
 async function getChatbotResponse(userMessage) {
   // Example logic: Check for specific keywords in the user's message
+  
   if (userMessage.toLowerCase().includes('stressed')) {
     return "I'm sorry you're feeling stressed. Would you like to talk more about what's causing it?";
      }
-
+  
   const chatSession = model.startChat({
     generationConfig,
  // safetySettings: Adjust safety settings
@@ -150,9 +157,19 @@ async function getChatbotResponse(userMessage) {
       },
     ],
   });
-
-  const result = await chatSession.sendMessage(userMessage);
-  return result.response.text();
+   try {
+    // Use the limiter to manage requests
+    const result = await limiter.schedule(() => chatSession.sendMessage(userMessage));
+    return result.response.text();
+  } catch (error) {
+    if (error.status === 429) {
+      console.error("Too many requests. Please try again later.");
+      return "I'm currently experiencing high traffic. Please try again shortly.";
+    } else {
+      console.error("Error processing message:", error);
+      return "Sorry, I couldn't process your request. Please try again.";
+    }
+  }
 }
 
 module.exports = getChatbotResponse;

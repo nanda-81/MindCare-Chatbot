@@ -3,14 +3,17 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid'); // To generate unique session IDs
 const path = require('path');
-const detectIntent = require('./dialogflow'); // Import Dialogflow function
+const detectIntent = require('./public/dialogflow'); // Import Dialogflow function
 // Import your custom chatbot logic
-const chatbotLogic = require('./chatbot');
+const chatbotLogic = require('./public/chatbot');
+
+const cors = require('cors');
+
 
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use environment variable PORT or default to 3000
-
+app.use(cors());
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
 
